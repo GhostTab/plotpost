@@ -1,10 +1,15 @@
 import { ApiError, type ApiErrorBody } from "./types";
 import { supabase } from "./supabase";
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1").replace(
-  /\/$/,
-  "",
-);
+/** Prefer explicit env; in production default to same-origin `/api/v1` (Vercel → Railway rewrite). */
+function resolveApiBaseUrl(): string {
+  const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (import.meta.env.PROD) return "/api/v1";
+  return "http://127.0.0.1:8000/api/v1";
+}
+
+export const apiBaseUrl = resolveApiBaseUrl();
 
 async function getAccessToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
@@ -24,7 +29,7 @@ export async function apiFetch<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     headers,
   });

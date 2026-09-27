@@ -6,7 +6,7 @@ import { CameraIntro } from "@/components/landing/CameraIntro";
 import { RotatingPosterStack } from "@/components/landing/RotatingPosterStack";
 import { NavSearch } from "@/components/NavSearch";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
-import { api, posterUrl } from "@/lib/api";
+import { api, apiBaseUrl, posterUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { MovieSummary } from "@/lib/types";
 
@@ -66,8 +66,7 @@ export function LandingPage() {
           <Hero movies={movies} signedIn={Boolean(session)} revealed={phase !== "rolling"} />
           {trending.isError ? (
             <p className="mx-auto max-w-6xl px-4 pb-4 text-sm text-red-300" role="alert">
-              Couldn’t load movies. Check that the API is reachable (
-              {import.meta.env.VITE_API_BASE_URL ?? "VITE_API_BASE_URL not set"}).
+              Couldn’t load movies. Check that the API is reachable ({apiBaseUrl}).
             </p>
           ) : null}
           {movies.length > 0 ? <FilmStrip movies={movies} /> : null}
