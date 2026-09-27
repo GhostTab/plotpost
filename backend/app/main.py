@@ -11,9 +11,9 @@ from app.database import init_db
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="MOVIESITE API",
-        version="0.1.0",
-        description="Recommendation vertical slice backend",
+        title="Plotpost API",
+        version="0.2.0",
+        description="Plotpost recommendation + filmography API",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["health"])
     def health() -> dict[str, str]:
-        return {"status": "ok"}
+        return {"status": "ok", "version": "0.2.0"}
 
     app.include_router(api_router, prefix="/api/v1")
     return app

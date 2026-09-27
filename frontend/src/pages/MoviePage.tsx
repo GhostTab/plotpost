@@ -230,24 +230,34 @@ export function MoviePage() {
                 <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                   {movie.cast.map((person) => {
                     const face = posterUrl(person.profile_path, "w185");
-                    return (
-                      <li key={`${person.id}-${person.character}`} className="text-center">
-                        <Link
-                          to={`/people/${person.id}`}
-                          className="group block transition hover:opacity-95"
-                        >
-                          <div className="mx-auto aspect-square w-full max-w-[120px] overflow-hidden rounded-full bg-[var(--color-surface)] ring-0 transition group-hover:ring-2 group-hover:ring-[var(--color-accent)]">
-                            {face ? (
-                              <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
-                            ) : null}
-                          </div>
-                          <p className="mt-3 text-sm font-medium transition group-hover:text-[var(--color-accent)]">
-                            {person.name}
-                          </p>
-                          {person.character ? (
-                            <p className="mt-1 text-xs text-[var(--color-muted)]">{person.character}</p>
+                    const personId = typeof person.id === "number" ? person.id : null;
+                    const body = (
+                      <>
+                        <div className="mx-auto aspect-square w-full max-w-[120px] overflow-hidden rounded-full bg-[var(--color-surface)] ring-0 transition group-hover:ring-2 group-hover:ring-[var(--color-accent)]">
+                          {face ? (
+                            <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
                           ) : null}
-                        </Link>
+                        </div>
+                        <p className="mt-3 text-sm font-medium transition group-hover:text-[var(--color-accent)]">
+                          {person.name}
+                        </p>
+                        {person.character ? (
+                          <p className="mt-1 text-xs text-[var(--color-muted)]">{person.character}</p>
+                        ) : null}
+                      </>
+                    );
+                    return (
+                      <li key={`${personId ?? person.name}-${person.character}`} className="text-center">
+                        {personId != null ? (
+                          <Link
+                            to={`/people/${personId}`}
+                            className="group block transition hover:opacity-95"
+                          >
+                            {body}
+                          </Link>
+                        ) : (
+                          <div className="block">{body}</div>
+                        )}
                       </li>
                     );
                   })}

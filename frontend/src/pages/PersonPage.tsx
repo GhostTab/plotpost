@@ -5,9 +5,10 @@ import { api, posterUrl } from "@/lib/api";
 import { ApiError, type PersonCredit } from "@/lib/types";
 
 export function PersonPage() {
-  const { id = "" } = useParams();
+  const params = useParams();
+  const rawId = String(params.id ?? "").trim();
   const navigate = useNavigate();
-  const personId = Number(id);
+  const personId = Number.parseInt(rawId, 10);
 
   const personQuery = useQuery({
     queryKey: ["people", personId],
@@ -20,10 +21,10 @@ export function PersonPage() {
     onSuccess: (movie) => navigate(`/movies/${movie.id}`),
   });
 
-  if (!Number.isFinite(personId) || personId <= 0) {
+  if (!rawId || rawId === "undefined" || rawId === "null" || !Number.isFinite(personId) || personId <= 0) {
     return (
       <div className="px-4 py-10">
-        <ErrorMessage message="Invalid person." />
+        <ErrorMessage message="This cast member has no person id yet. Redeploy the Railway backend, then hard-refresh the movie page." />
       </div>
     );
   }

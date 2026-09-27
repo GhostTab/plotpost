@@ -44,7 +44,7 @@ export type MovieDetail = MovieSummary & {
 };
 
 export type CastMember = {
-  id: number;
+  id?: number;
   name: string;
   character: string | null;
   profile_path: string | null;
