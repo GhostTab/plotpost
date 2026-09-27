@@ -1,7 +1,8 @@
 # Design: Recommendation Vertical Slice
 
 **Date:** 2026-09-27  
-**Status:** Approved for spec review  
+**Status:** Approved  
+**Implementation plan:** `docs/superpowers/plans/2026-09-27-recommendation-vertical-slice-plan.md`  
 **Product:** Social movie tracking & recommendation platform (MOVIESITE)
 
 ## 1. Goal

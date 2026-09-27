@@ -1,0 +1,15 @@
+moviesite.local.db
+*.local.db
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+node_modules/
+frontend/dist/
+frontend/.env
+*.log
