@@ -64,6 +64,12 @@ export function LandingPage() {
         <div className="flex min-h-[100dvh] flex-col">
           <LandingNav signedIn={Boolean(session)} />
           <Hero movies={movies} signedIn={Boolean(session)} revealed={phase !== "rolling"} />
+          {trending.isError ? (
+            <p className="mx-auto max-w-6xl px-4 pb-4 text-sm text-red-300" role="alert">
+              Couldn’t load movies. Check that the API is reachable (
+              {import.meta.env.VITE_API_BASE_URL ?? "VITE_API_BASE_URL not set"}).
+            </p>
+          ) : null}
           {movies.length > 0 ? <FilmStrip movies={movies} /> : null}
         </div>
         <footer className="mx-auto w-full max-w-6xl border-t border-[var(--color-line)] px-4 py-8 text-xs text-[var(--color-muted)]">
