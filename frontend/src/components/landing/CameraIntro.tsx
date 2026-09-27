@@ -113,7 +113,7 @@ export function CameraIntro({ backdrop, opening, onRolled, onOpened, onSkip }: P
             animate={{ opacity: 1, filter: "blur(0px)", letterSpacing: "0.04em" }}
             transition={{ delay: 0.5, duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            MOVIESITE
+            Plotpost
           </motion.h1>
           <motion.p
             className="relative mt-4 text-xs font-medium tracking-[0.3em] text-[var(--color-accent)] uppercase"

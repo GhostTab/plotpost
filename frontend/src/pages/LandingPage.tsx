@@ -85,7 +85,7 @@ function LandingNav({ signedIn }: { signedIn: boolean }) {
             to="/"
             className="font-display bg-gradient-to-r from-[#f3c97a] to-[#c9832e] bg-clip-text text-xl font-semibold tracking-tight text-transparent"
           >
-            MOVIESITE
+            Plotpost
           </Link>
           {signedIn ? (
             <nav className="hidden items-center sm:flex" aria-label="Primary">
@@ -150,7 +150,7 @@ function Hero({
         </motion.p>
         <motion.div {...item(0.5)} className="mt-6 flex flex-wrap gap-3">
           {signedIn ? (
-            <Link to="/search" className={primaryButtonClass}>
+            <Link to="/search" className={`${primaryButtonClass} hidden sm:inline-flex`}>
               Browse films
             </Link>
           ) : (

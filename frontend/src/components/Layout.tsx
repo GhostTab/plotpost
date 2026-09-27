@@ -54,7 +54,7 @@ export function AppShell() {
               to="/"
               className="font-display bg-gradient-to-r from-[#f3c97a] to-[#c9832e] bg-clip-text text-xl font-semibold tracking-tight text-transparent"
             >
-              MOVIESITE
+              Plotpost
             </Link>
             {signedIn ? (
               <nav className="hidden items-center sm:flex" aria-label="Primary">
