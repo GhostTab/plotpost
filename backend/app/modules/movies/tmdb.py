@@ -80,6 +80,23 @@ class TMDBClient:
             raise UpstreamError("TMDB rejected the request", code="TMDB_CLIENT_ERROR", status_code=502)
         return response.json()
 
+    def get_person(self, person_id: int) -> dict[str, Any]:
+        try:
+            response = self._http().get(
+                f"/person/{person_id}",
+                params={"append_to_response": "movie_credits"},
+            )
+        except httpx.HTTPError as exc:
+            raise UpstreamError("TMDB request failed", code="TMDB_UNAVAILABLE", status_code=503) from exc
+
+        if response.status_code == 404:
+            raise NotFoundError("Person not found on TMDB", code="TMDB_PERSON_NOT_FOUND")
+        if response.status_code >= 500:
+            raise UpstreamError("TMDB server error", code="TMDB_ERROR", status_code=502)
+        if response.status_code >= 400:
+            raise UpstreamError("TMDB rejected the request", code="TMDB_CLIENT_ERROR", status_code=502)
+        return response.json()
+
 
 def _parse_release_date(raw: str | None) -> date | None:
     if not raw:

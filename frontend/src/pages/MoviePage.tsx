@@ -231,16 +231,23 @@ export function MoviePage() {
                   {movie.cast.map((person) => {
                     const face = posterUrl(person.profile_path, "w185");
                     return (
-                      <li key={`${person.name}-${person.character}`} className="text-center">
-                        <div className="mx-auto aspect-square w-full max-w-[120px] overflow-hidden rounded-full bg-[var(--color-surface)]">
-                          {face ? (
-                            <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <li key={`${person.id}-${person.character}`} className="text-center">
+                        <Link
+                          to={`/people/${person.id}`}
+                          className="group block transition hover:opacity-95"
+                        >
+                          <div className="mx-auto aspect-square w-full max-w-[120px] overflow-hidden rounded-full bg-[var(--color-surface)] ring-0 transition group-hover:ring-2 group-hover:ring-[var(--color-accent)]">
+                            {face ? (
+                              <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-sm font-medium transition group-hover:text-[var(--color-accent)]">
+                            {person.name}
+                          </p>
+                          {person.character ? (
+                            <p className="mt-1 text-xs text-[var(--color-muted)]">{person.character}</p>
                           ) : null}
-                        </div>
-                        <p className="mt-3 text-sm font-medium">{person.name}</p>
-                        {person.character ? (
-                          <p className="mt-1 text-xs text-[var(--color-muted)]">{person.character}</p>
-                        ) : null}
+                        </Link>
                       </li>
                     );
                   })}

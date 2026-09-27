@@ -47,13 +47,18 @@ export function ProfilePage() {
       />
 
       {profileQuery.isError ? (
-        <ErrorMessage
-          message={
-            profileQuery.error instanceof ApiError
-              ? profileQuery.error.message
-              : "Profile not found."
-          }
-        />
+        <div className="space-y-3">
+          <ErrorMessage
+            message={
+              profileQuery.error instanceof ApiError
+                ? profileQuery.error.message
+                : "Profile not found."
+            }
+          />
+          <p className="text-sm text-[var(--color-muted)]">
+            Couldn’t load @{username}. If this is your account, check that the API is reachable, then refresh.
+          </p>
+        </div>
       ) : null}
 
       {profile ? (

@@ -73,9 +73,6 @@ export function LandingPage() {
           {movies.length > 0 ? <FilmStrip movies={movies} /> : null}
         </div>
         {movies.length > 0 ? <TrendingNow movies={movies} signedIn={Boolean(session)} /> : null}
-        <footer className="mx-auto w-full max-w-6xl border-t border-[var(--color-line)] px-4 py-8 text-xs text-[var(--color-muted)]">
-          This product uses the TMDB API but is not endorsed or certified by TMDB.
-        </footer>
       </div>
     </>
   );
@@ -237,13 +234,13 @@ function TrendingNow({ movies, signedIn }: { movies: MovieSummary[]; signedIn: b
           </Link>
         </div>
 
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <ul className="grid grid-cols-4 gap-x-2.5 gap-y-5 sm:gap-x-4 sm:gap-y-8 md:grid-cols-4 lg:grid-cols-6">
           {list.map((movie, i) => {
             const year = movie.release_date?.slice(0, 4);
             return (
               <li key={movie.id}>
                 <Link to={`/movies/${movie.id}`} className="group block">
-                  <div className="aspect-[2/3] overflow-hidden rounded-[8px] border border-[var(--color-line)] bg-[var(--color-surface)]">
+                  <div className="aspect-[2/3] overflow-hidden rounded-[6px] border border-[var(--color-line)] bg-[var(--color-surface)] sm:rounded-[8px]">
                     <img
                       src={posterUrl(movie.poster_path, "w500") ?? ""}
                       alt=""
@@ -251,11 +248,11 @@ function TrendingNow({ movies, signedIn }: { movies: MovieSummary[]; signedIn: b
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                     />
                   </div>
-                  <h3 className="mt-3 line-clamp-2 font-display text-[15px] leading-snug font-semibold transition group-hover:text-[var(--color-accent)]">
+                  <h3 className="mt-2 line-clamp-2 font-display text-[12px] leading-snug font-semibold transition group-hover:text-[var(--color-accent)] sm:mt-3 sm:text-[15px]">
                     {movie.title}
                   </h3>
                   {year ? (
-                    <p className="mt-1 text-xs text-[var(--color-muted)]">{year}</p>
+                    <p className="mt-0.5 text-[10px] text-[var(--color-muted)] sm:mt-1 sm:text-xs">{year}</p>
                   ) : null}
                 </Link>
               </li>

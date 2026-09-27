@@ -66,12 +66,6 @@ export function AppShell() {
       <main className={isMovieDetail ? "" : "mx-auto max-w-6xl px-4 py-10"}>
         <Outlet />
       </main>
-
-      {!isMovieDetail ? (
-        <footer className="mx-auto max-w-6xl border-t border-[var(--color-line)] px-4 py-8 text-xs text-[var(--color-muted)]">
-          This product uses the TMDB API but is not endorsed or certified by TMDB.
-        </footer>
-      ) : null}
     </div>
   );
 }

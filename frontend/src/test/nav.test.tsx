@@ -8,10 +8,10 @@ import { AppShell } from "@/components/Layout";
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
     profile: { username: "alice", id: "1" },
+    user: { user_metadata: { username: "alice" } },
     signOut: vi.fn(),
     loading: false,
     session: {},
-    user: {},
     signIn: vi.fn(),
     signUp: vi.fn(),
   }),

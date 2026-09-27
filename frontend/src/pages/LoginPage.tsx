@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { ErrorMessage, PageHeading } from "@/components/ui";
+import {
+  AuthShell,
+  authFieldClass,
+  authLabelClass,
+  authSubmitClass,
+} from "@/components/AuthShell";
+import { ErrorMessage } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 
 export function LoginPage() {
@@ -32,11 +38,22 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-4 py-10">
-      <PageHeading title="Sign in" subtitle="Use your Supabase account to continue." />
-      <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in"
+      subtitle="Pick up where you left off — your feed, ratings, and shares."
+      footer={
+        <p className="text-sm text-[var(--color-muted)]">
+          New here?{" "}
+          <Link className="font-medium text-[var(--color-accent)] transition hover:brightness-110" to="/register">
+            Create an account
+          </Link>
+        </p>
+      }
+    >
+      <form className="space-y-5" onSubmit={(e) => void onSubmit(e)}>
         <div className="grid gap-2">
-          <label htmlFor="email" className="text-sm font-medium">
+          <label htmlFor="email" className={authLabelClass}>
             Email
           </label>
           <input
@@ -44,13 +61,14 @@ export function LoginPage() {
             type="email"
             autoComplete="email"
             required
-            className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5 transition focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="you@email.com"
+            className={authFieldClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className="grid gap-2">
-          <label htmlFor="password" className="text-sm font-medium">
+          <label htmlFor="password" className={authLabelClass}>
             Password
           </label>
           <input
@@ -58,26 +76,17 @@ export function LoginPage() {
             type="password"
             autoComplete="current-password"
             required
-            className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5 transition focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="Your password"
+            className={authFieldClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
         {error ? <ErrorMessage message={error} /> : null}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-[10px] bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60 dark:text-zinc-950"
-        >
+        <button type="submit" disabled={submitting} className={authSubmitClass}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-[var(--color-muted)]">
-        No account?{" "}
-        <Link className="font-medium text-[var(--color-accent)]" to="/register">
-          Create one
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   );
 }

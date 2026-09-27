@@ -6,7 +6,9 @@ import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MoviePage } from "@/pages/MoviePage";
 import { NotificationsPage } from "@/pages/NotificationsPage";
+import { PersonPage } from "@/pages/PersonPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { ProfileRedirectPage } from "@/pages/ProfileRedirectPage";
 import { RecommendationsPage } from "@/pages/RecommendationsPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SearchPage } from "@/pages/SearchPage";
@@ -20,7 +22,9 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/search" element={<SearchPage />} />
         <Route path="/movies/:id" element={<MoviePage />} />
+        <Route path="/people/:id" element={<PersonPage />} />
         <Route element={<RequireAuth />}>
+          <Route path="/profile" element={<ProfileRedirectPage />} />
           <Route path="/users/:username" element={<ProfilePage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/recommendations/new" element={<ComposeRecommendationPage />} />

@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ from app.modules.movies.models import Movie
 from app.modules.movies.tmdb import MovieRepository, TMDBClient
 from app.modules.ratings.models import Rating
 from app.modules.recommendations.service import RatingRepository, RecommendationRepository
-from app.modules.schemas_common import CastMember, MovieDetail
+from app.modules.schemas_common import CastMember, MovieDetail, PersonCredit, PersonDetail
 
 
 class MovieService:
@@ -24,11 +25,76 @@ class MovieService:
     def trending(self) -> list[Movie]:
         return self._upsert_all(self.tmdb.trending_week())
 
+    def ensure_by_tmdb_id(self, tmdb_id: int) -> Movie:
+        existing = self.movies.get_by_tmdb_id(tmdb_id)
+        if existing is not None:
+            return existing
+        payload = self.tmdb.get_movie(tmdb_id)
+        movie = self.movies.upsert_from_tmdb(payload)
+        self.db.commit()
+        self.db.refresh(movie)
+        return movie
+
+    def get_person(self, person_id: int) -> PersonDetail:
+        payload = self.tmdb.get_person(person_id)
+        credits_block = payload.get("movie_credits") or {}
+        cast_credits = credits_block.get("cast") or []
+        crew_credits = credits_block.get("crew") or []
+
+        filmography: list[PersonCredit] = []
+        seen: set[int] = set()
+
+        def add_credit(item: dict, *, character: str | None = None, job: str | None = None) -> None:
+            raw_id = item.get("id")
+            if raw_id is None:
+                return
+            tmdb_id = int(raw_id)
+            if tmdb_id in seen:
+                return
+            seen.add(tmdb_id)
+            filmography.append(
+                PersonCredit(
+                    tmdb_id=tmdb_id,
+                    title=str(item.get("title") or item.get("name") or "Untitled"),
+                    character=character,
+                    job=job,
+                    release_date=_parse_optional_date(item.get("release_date")),
+                    poster_path=item.get("poster_path"),
+                )
+            )
+
+        for item in cast_credits:
+            if not isinstance(item, dict):
+                continue
+            add_credit(item, character=item.get("character"))
+
+        for item in crew_credits:
+            if not isinstance(item, dict):
+                continue
+            if item.get("job") not in ("Director", "Writer", "Screenplay"):
+                continue
+            add_credit(item, job=item.get("job"))
+
+        filmography.sort(
+            key=lambda c: c.release_date.isoformat() if c.release_date else "",
+            reverse=True,
+        )
+
+        biography = payload.get("biography")
+        return PersonDetail(
+            id=int(payload["id"]),
+            name=str(payload.get("name") or "Unknown"),
+            biography=(str(biography).strip() or None) if biography else None,
+            birthday=_parse_optional_date(payload.get("birthday")),
+            place_of_birth=payload.get("place_of_birth"),
+            profile_path=payload.get("profile_path"),
+            known_for_department=payload.get("known_for_department"),
+            filmography=filmography[:80],
+        )
+
     def _upsert_all(self, results: list[dict]) -> list[Movie]:
         movies: list[Movie] = []
         for payload in results:
-            # Search payloads lack runtime; upsert title fields only. Avoid partial corrupt writes:
-            # each upsert is flushed independently; failures raise before commit.
             movies.append(self.movies.upsert_from_tmdb(payload))
         self.db.commit()
         for movie in movies:
@@ -66,17 +132,17 @@ class MovieService:
                     director = person.get("name")
                     break
             for person in (credits.get("cast") or [])[:12]:
-                if not person.get("name"):
+                if not person.get("name") or person.get("id") is None:
                     continue
                 cast.append(
                     CastMember(
+                        id=int(person["id"]),
                         name=str(person["name"]),
                         character=person.get("character"),
                         profile_path=person.get("profile_path"),
                     )
                 )
         except UpstreamError:
-            # Detail page still works from local cache if TMDB enrichment fails.
             pass
 
         return MovieDetail(
@@ -96,3 +162,12 @@ class MovieService:
             director=director,
             cast=cast,
         )
+
+
+def _parse_optional_date(raw: str | None) -> date | None:
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None

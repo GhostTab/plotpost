@@ -19,9 +19,30 @@ class MovieSummary(BaseModel):
 
 
 class CastMember(BaseModel):
+    id: int
     name: str
     character: str | None = None
     profile_path: str | None = None
+
+
+class PersonCredit(BaseModel):
+    tmdb_id: int
+    title: str
+    character: str | None = None
+    job: str | None = None
+    release_date: date | None = None
+    poster_path: str | None = None
+
+
+class PersonDetail(BaseModel):
+    id: int
+    name: str
+    biography: str | None = None
+    birthday: date | None = None
+    place_of_birth: str | None = None
+    profile_path: str | None = None
+    known_for_department: str | None = None
+    filmography: list[PersonCredit] = []
 
 
 class MovieDetail(MovieSummary):

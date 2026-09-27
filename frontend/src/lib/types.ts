@@ -44,9 +44,30 @@ export type MovieDetail = MovieSummary & {
 };
 
 export type CastMember = {
+  id: number;
   name: string;
   character: string | null;
   profile_path: string | null;
+};
+
+export type PersonCredit = {
+  tmdb_id: number;
+  title: string;
+  character: string | null;
+  job: string | null;
+  release_date: string | null;
+  poster_path: string | null;
+};
+
+export type PersonDetail = {
+  id: number;
+  name: string;
+  biography: string | null;
+  birthday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string | null;
+  filmography: PersonCredit[];
 };
 
 export type Recommendation = {

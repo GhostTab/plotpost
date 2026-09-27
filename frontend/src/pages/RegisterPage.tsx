@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ErrorMessage, PageHeading } from "@/components/ui";
+import {
+  AuthShell,
+  authFieldClass,
+  authLabelClass,
+  authSubmitClass,
+} from "@/components/AuthShell";
+import { ErrorMessage } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 
 export function RegisterPage() {
@@ -36,27 +42,42 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-4 py-10">
-      <PageHeading
-        title="Create account"
-        subtitle="Pick a username. It becomes your public profile handle."
-      />
-      <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+    <AuthShell
+      eyebrow="Join Plotpost"
+      title="Create account"
+      subtitle="Pick a username — it becomes your public handle when you share films."
+      footer={
+        <p className="text-sm text-[var(--color-muted)]">
+          Already have an account?{" "}
+          <Link className="font-medium text-[var(--color-accent)] transition hover:brightness-110" to="/login">
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <form className="space-y-5" onSubmit={(e) => void onSubmit(e)}>
         <div className="grid gap-2">
-          <label htmlFor="username" className="text-sm font-medium">
+          <label htmlFor="username" className={authLabelClass}>
             Username
           </label>
-          <input
-            id="username"
-            required
-            className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5 transition focus:border-[var(--color-accent)] focus:outline-none"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <p className="text-xs text-[var(--color-muted)]">Letters, numbers, underscore.</p>
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[var(--color-muted)]">
+              @
+            </span>
+            <input
+              id="username"
+              required
+              placeholder="yourhandle"
+              className={`${authFieldClass} pl-9`}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+            />
+          </div>
+          <p className="text-xs text-[var(--color-muted)]">Letters, numbers, underscore · min 3</p>
         </div>
         <div className="grid gap-2">
-          <label htmlFor="email" className="text-sm font-medium">
+          <label htmlFor="email" className={authLabelClass}>
             Email
           </label>
           <input
@@ -64,13 +85,14 @@ export function RegisterPage() {
             type="email"
             autoComplete="email"
             required
-            className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5 transition focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="you@email.com"
+            className={authFieldClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className="grid gap-2">
-          <label htmlFor="password" className="text-sm font-medium">
+          <label htmlFor="password" className={authLabelClass}>
             Password
           </label>
           <input
@@ -79,26 +101,17 @@ export function RegisterPage() {
             autoComplete="new-password"
             required
             minLength={6}
-            className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5 transition focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="At least 6 characters"
+            className={authFieldClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
         {error ? <ErrorMessage message={error} /> : null}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-[10px] bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-        >
+        <button type="submit" disabled={submitting} className={authSubmitClass}>
           {submitting ? "Creating…" : "Create account"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-[var(--color-muted)]">
-        Already registered?{" "}
-        <Link className="font-medium text-[var(--color-accent)]" to="/login">
-          Sign in
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   );
 }

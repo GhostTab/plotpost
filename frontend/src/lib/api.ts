@@ -73,6 +73,10 @@ export const api = {
     apiFetch<import("./types").MovieSummary[]>(`/movies/search?q=${encodeURIComponent(q)}`),
   trendingMovies: () => apiFetch<import("./types").MovieSummary[]>("/movies/trending"),
   movie: (id: string) => apiFetch<import("./types").MovieDetail>(`/movies/${id}`),
+  movieByTmdb: (tmdbId: number) =>
+    apiFetch<import("./types").MovieSummary>(`/movies/tmdb/${tmdbId}`),
+  person: (id: number | string) =>
+    apiFetch<import("./types").PersonDetail>(`/people/${id}`),
   upsertRating: (movieId: string, score: number) =>
     apiFetch<{ id: string; score: string }>(`/ratings`, {
       method: "PUT",

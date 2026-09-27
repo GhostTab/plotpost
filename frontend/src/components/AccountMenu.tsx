@@ -7,10 +7,16 @@ const menuItemClass =
   "block w-full px-4 py-2.5 text-left text-sm transition hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent)]";
 
 export function AccountMenu() {
-  const { profile, signOut, loading } = useAuth();
+  const { profile, user, signOut, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const username =
+    profile?.username ??
+    (typeof user?.user_metadata?.username === "string"
+      ? user.user_metadata.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "")
+      : null);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
@@ -35,7 +41,7 @@ export function AccountMenu() {
         className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-accent)] text-zinc-950 transition active:scale-[0.96]"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={profile?.username ?? "Account"}
+        aria-label={username ?? "Account"}
         onClick={() => setOpen((v) => !v)}
         disabled={loading}
       >
@@ -46,14 +52,14 @@ export function AccountMenu() {
           role="menu"
           className="absolute right-0 z-40 mt-3 w-56 overflow-hidden rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)]"
         >
-          {profile ? (
+          {username ? (
             <p className="border-b border-[var(--color-line)] px-4 py-3 text-xs text-[var(--color-muted)]">
-              Signed in as <span className="text-[var(--color-ink)]">@{profile.username}</span>
+              Signed in as <span className="text-[var(--color-ink)]">@{username}</span>
             </p>
           ) : null}
           <Link
             role="menuitem"
-            to={profile ? `/users/${profile.username}` : "/login"}
+            to={username ? `/users/${username}` : "/profile"}
             className={menuItemClass}
             onClick={() => setOpen(false)}
           >

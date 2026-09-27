@@ -21,6 +21,7 @@ from app.modules.schemas_common import (
     MovieDetail,
     MovieSummary,
     NotificationOut,
+    PersonDetail,
     RatingOut,
     RatingUpsert,
     RecommendationCreate,
@@ -170,6 +171,25 @@ def search_movies(
 def trending_movies(db: Session = Depends(get_db)) -> list[MovieSummary]:
     movies = MovieService(db).trending()
     return [MovieSummary.model_validate(m) for m in movies]
+
+
+@api_router.get(
+    "/movies/tmdb/{tmdb_id}",
+    response_model=MovieSummary,
+    summary="Resolve a TMDB movie id into a local movie (upsert if needed)",
+)
+def get_movie_by_tmdb(tmdb_id: int, db: Session = Depends(get_db)) -> MovieSummary:
+    movie = MovieService(db).ensure_by_tmdb_id(tmdb_id)
+    return MovieSummary.model_validate(movie)
+
+
+@api_router.get(
+    "/people/{person_id}",
+    response_model=PersonDetail,
+    summary="Person profile and filmography via TMDB (public)",
+)
+def get_person(person_id: int, db: Session = Depends(get_db)) -> PersonDetail:
+    return MovieService(db).get_person(person_id)
 
 
 @api_router.get(
