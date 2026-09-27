@@ -9,14 +9,16 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   // Allow Vercel to set API_BASE_URL (no VITE_ prefix) and map it for the client.
   const env = loadEnv(mode, root, "");
-  const apiBase = (
+  let apiBase = (
     env.VITE_API_BASE_URL ||
     env.API_BASE_URL ||
     process.env.VITE_API_BASE_URL ||
     process.env.API_BASE_URL ||
     ""
   ).replace(/\/$/, "");
-
+  if (apiBase && !/\/api\/v1$/i.test(apiBase)) {
+    apiBase = `${apiBase}/api/v1`;
+  }
   return {
     plugins: [react(), tailwindcss()],
     resolve: {

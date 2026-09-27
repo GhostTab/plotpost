@@ -38,6 +38,12 @@ class TMDBClient:
         return self._get_results("/trending/movie/week")
 
     def _get_results(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        if not (self.settings.tmdb_api_key or "").strip():
+            raise UpstreamError(
+                "TMDB_API_KEY is not set on the server",
+                code="TMDB_KEY_MISSING",
+                status_code=502,
+            )
         try:
             response = self._http().get(path, params=params)
         except httpx.HTTPError as exc:
@@ -45,6 +51,12 @@ class TMDBClient:
 
         if response.status_code >= 500:
             raise UpstreamError("TMDB server error", code="TMDB_ERROR", status_code=502)
+        if response.status_code in (401, 403):
+            raise UpstreamError(
+                "TMDB rejected the API key (check TMDB_API_KEY on Railway)",
+                code="TMDB_INVALID_KEY",
+                status_code=502,
+            )
         if response.status_code >= 400:
             raise UpstreamError("TMDB rejected the request", code="TMDB_CLIENT_ERROR", status_code=502)
 

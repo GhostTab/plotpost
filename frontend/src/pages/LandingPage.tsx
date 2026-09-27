@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { AccountMenu } from "@/components/AccountMenu";
 import { CameraIntro } from "@/components/landing/CameraIntro";
 import { RotatingPosterStack } from "@/components/landing/RotatingPosterStack";
 import { NavSearch } from "@/components/NavSearch";
@@ -71,6 +72,7 @@ export function LandingPage() {
           ) : null}
           {movies.length > 0 ? <FilmStrip movies={movies} /> : null}
         </div>
+        {movies.length > 0 ? <TrendingNow movies={movies} signedIn={Boolean(session)} /> : null}
         <footer className="mx-auto w-full max-w-6xl border-t border-[var(--color-line)] px-4 py-8 text-xs text-[var(--color-muted)]">
           This product uses the TMDB API but is not endorsed or certified by TMDB.
         </footer>
@@ -103,9 +105,7 @@ function LandingNav({ signedIn }: { signedIn: boolean }) {
         <div className="flex items-center gap-2">
           <NavSearch />
           {signedIn ? (
-            <Link to="/search" className={primaryButtonClass}>
-              Browse films
-            </Link>
+            <AccountMenu />
           ) : (
             <>
               <Link to="/login" className="px-3 py-2 text-sm font-medium transition hover:text-[var(--color-accent)]">
@@ -160,10 +160,10 @@ function Hero({
             </Link>
           ) : (
             <>
-              <Link to="/register" className={primaryButtonClass}>
+              <Link to="/register" className={`${primaryButtonClass} hidden sm:inline-flex`}>
                 Get started
               </Link>
-              <Link to="/login" className={secondaryButtonClass}>
+              <Link to="/login" className={`${secondaryButtonClass} hidden sm:inline-flex`}>
                 Sign in
               </Link>
             </>
@@ -203,6 +203,66 @@ function FilmStrip({ movies }: { movies: MovieSummary[] }) {
         ))}
       </div>
       <div className={sprockets} />
+    </section>
+  );
+}
+
+function TrendingNow({ movies, signedIn }: { movies: MovieSummary[]; signedIn: boolean }) {
+  const list = movies.filter((m) => m.poster_path).slice(0, 12);
+
+  return (
+    <section className="relative border-b border-[var(--color-line)] bg-[var(--color-paper)] py-14 md:py-16">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(226,168,85,0.08),transparent_60%)]"
+      />
+      <div className="relative mx-auto max-w-6xl px-4">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.2em] text-[var(--color-accent)] uppercase">
+              This week
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
+              Trending now
+            </h2>
+            <p className="mt-2 max-w-[42ch] text-sm text-[var(--color-muted)]">
+              Open a title, rate it, and share the ones worth passing on.
+            </p>
+          </div>
+          <Link
+            to={signedIn ? "/search" : "/register"}
+            className={`${secondaryButtonClass} shrink-0`}
+          >
+            {signedIn ? "Browse all" : "Join to share"}
+          </Link>
+        </div>
+
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {list.map((movie, i) => {
+            const year = movie.release_date?.slice(0, 4);
+            return (
+              <li key={movie.id}>
+                <Link to={`/movies/${movie.id}`} className="group block">
+                  <div className="aspect-[2/3] overflow-hidden rounded-[8px] border border-[var(--color-line)] bg-[var(--color-surface)]">
+                    <img
+                      src={posterUrl(movie.poster_path, "w500") ?? ""}
+                      alt=""
+                      loading={i < 6 ? "eager" : "lazy"}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                  <h3 className="mt-3 line-clamp-2 font-display text-[15px] leading-snug font-semibold transition group-hover:text-[var(--color-accent)]">
+                    {movie.title}
+                  </h3>
+                  {year ? (
+                    <p className="mt-1 text-xs text-[var(--color-muted)]">{year}</p>
+                  ) : null}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </section>
   );
 }

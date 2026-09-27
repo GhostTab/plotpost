@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     tmdb_api_key: str = ""
     tmdb_base_url: str = "https://api.themoviedb.org/3"
     success_threshold: float = 4.0
-    cors_origins: str = "http://localhost:5173"
-    # Also allow Vercel preview/production hosts (credentials-safe regex).
+    cors_origins: str = "http://localhost:5173,https://plotpost-jet.vercel.app,https://plotpostt.vercel.app"
+    # Also allow any Vercel host (preview + production).
     cors_origin_regex: str = r"https://.*\.vercel\.app"
     max_page_size: int = 50
     default_page_size: int = 20

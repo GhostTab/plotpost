@@ -3,10 +3,17 @@ import { supabase } from "./supabase";
 
 /** Prefer explicit env; in production default to same-origin `/api/v1` (Vercel → Railway rewrite). */
 function resolveApiBaseUrl(): string {
-  const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  if (import.meta.env.PROD) return "/api/v1";
-  return "http://127.0.0.1:8000/api/v1";
+  let fromEnv = import.meta.env.VITE_API_BASE_URL?.trim() || "";
+  if (!fromEnv) {
+    if (import.meta.env.PROD) return "/api/v1";
+    return "http://127.0.0.1:8000/api/v1";
+  }
+  fromEnv = fromEnv.replace(/\/$/, "");
+  // Common misconfig: host only, missing /api/v1
+  if (!/\/api\/v1$/i.test(fromEnv)) {
+    fromEnv = `${fromEnv}/api/v1`;
+  }
+  return fromEnv;
 }
 
 export const apiBaseUrl = resolveApiBaseUrl();
