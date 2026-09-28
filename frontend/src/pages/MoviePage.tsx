@@ -1,4 +1,4 @@
-import { Heart, BookmarkSimple } from "@phosphor-icons/react";
+import { BookmarkSimple, CheckCircle, Heart } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -18,6 +18,7 @@ export function MoviePage() {
   const signedIn = Boolean(session);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
   const movieQuery = useQuery({
@@ -26,17 +27,63 @@ export function MoviePage() {
     enabled: Boolean(id),
   });
 
+  async function refreshMovie() {
+    await queryClient.invalidateQueries({ queryKey: ["movies", id] });
+    await queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+    await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    await queryClient.invalidateQueries({ queryKey: ["me"] });
+    await queryClient.invalidateQueries({ queryKey: ["users"] });
+  }
+
   const ratingMutation = useMutation({
     mutationFn: (score: number) => api.upsertRating(id, score),
     onSuccess: async () => {
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: ["movies", id] });
-      await queryClient.invalidateQueries({ queryKey: ["recommendations"] });
-      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      setNote("Logged to your diary for today.");
+      await refreshMovie();
     },
     onError: (err) => {
       setError(err instanceof ApiError ? mapApiError(err.code, err.message) : "Could not save rating.");
+    },
+  });
+
+  const watchlistMutation = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (next) await api.addWatchlist(id);
+      else await api.removeWatchlist(id);
+    },
+    onSuccess: async () => {
+      setError(null);
+      await refreshMovie();
+    },
+    onError: (err) => {
+      setError(err instanceof ApiError ? mapApiError(err.code, err.message) : "Watchlist update failed.");
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (next) await api.likeMovie(id);
+      else await api.unlikeMovie(id);
+    },
+    onSuccess: async () => {
+      setError(null);
+      await refreshMovie();
+    },
+    onError: (err) => {
+      setError(err instanceof ApiError ? mapApiError(err.code, err.message) : "Like update failed.");
+    },
+  });
+
+  const watchedMutation = useMutation({
+    mutationFn: () => api.createDiary({ movie_id: id }),
+    onSuccess: async () => {
+      setError(null);
+      setNote("Marked as watched.");
+      await refreshMovie();
+    },
+    onError: (err) => {
+      setError(err instanceof ApiError ? mapApiError(err.code, err.message) : "Could not mark watched.");
     },
   });
 
@@ -71,6 +118,10 @@ export function MoviePage() {
     navigate("/login", { state: { from: `/movies/${id}` } });
   }
 
+  const onWatchlist = Boolean(movie.on_watchlist);
+  const liked = Boolean(movie.liked_by_me);
+  const watched = Boolean(movie.watched);
+
   return (
     <div className="-mt-16 bg-[var(--color-paper)]">
       <section className="relative min-h-[72dvh] overflow-hidden md:min-h-[80dvh]">
@@ -80,8 +131,6 @@ export function MoviePage() {
           <div className="absolute inset-0 bg-[var(--color-surface)]" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-
-        {/* Concave black curve — content dips into the backdrop */}
         <svg
           className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] w-full text-[var(--color-paper)]"
           viewBox="0 0 1440 320"
@@ -125,29 +174,51 @@ export function MoviePage() {
                   {part}
                 </span>
               ))}
+              {movie.like_count && movie.like_count > 0 ? (
+                <span className="inline-flex items-center gap-3">
+                  <span className="text-[var(--color-line)]" aria-hidden>
+                    ·
+                  </span>
+                  {movie.like_count} like{movie.like_count === 1 ? "" : "s"}
+                </span>
+              ) : null}
             </div>
           </div>
 
           <div className="flex justify-center gap-3 md:justify-end md:pb-1">
             <button
               type="button"
-              aria-label="Save"
-              className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-line)] text-[var(--color-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              aria-label={onWatchlist ? "Remove from watchlist" : "Save to watchlist"}
+              aria-pressed={onWatchlist}
+              disabled={watchlistMutation.isPending}
+              className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                onWatchlist
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]"
+                  : "border-[var(--color-line)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              }`}
               onClick={() => {
-                if (!signedIn) requireAuthAction();
+                if (!signedIn) return requireAuthAction();
+                watchlistMutation.mutate(!onWatchlist);
               }}
             >
-              <BookmarkSimple size={20} />
+              <BookmarkSimple size={20} weight={onWatchlist ? "fill" : "regular"} />
             </button>
             <button
               type="button"
-              aria-label="Favorite"
-              className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-line)] text-[var(--color-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              aria-label={liked ? "Unlike" : "Like"}
+              aria-pressed={liked}
+              disabled={likeMutation.isPending}
+              className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                liked
+                  ? "border-rose-400/80 bg-rose-950/40 text-rose-300"
+                  : "border-[var(--color-line)] text-[var(--color-muted)] hover:border-rose-400 hover:text-rose-300"
+              }`}
               onClick={() => {
-                if (!signedIn) requireAuthAction();
+                if (!signedIn) return requireAuthAction();
+                likeMutation.mutate(!liked);
               }}
             >
-              <Heart size={20} />
+              <Heart size={20} weight={liked ? "fill" : "regular"} />
             </button>
           </div>
         </div>
@@ -192,8 +263,27 @@ export function MoviePage() {
                     <RatingControl
                       value={movie.my_rating}
                       disabled={ratingMutation.isPending}
-                      onChange={(score) => ratingMutation.mutate(score)}
+                      onChange={(score) => {
+                        setNote(null);
+                        ratingMutation.mutate(score);
+                      }}
                     />
+                    <button
+                      type="button"
+                      disabled={watchedMutation.isPending || watched}
+                      className={`${secondaryButtonClass} inline-flex w-full items-center justify-center gap-2`}
+                      onClick={() => {
+                        setNote(null);
+                        watchedMutation.mutate();
+                      }}
+                    >
+                      <CheckCircle size={16} weight={watched ? "fill" : "regular"} />
+                      {watched
+                        ? movie.watched_at
+                          ? `Watched ${movie.watched_at}`
+                          : "Watched"
+                        : "Mark watched"}
+                    </button>
                     <button
                       type="button"
                       className={`${primaryButtonClass} w-full`}
@@ -201,11 +291,16 @@ export function MoviePage() {
                     >
                       Recommend
                     </button>
+                    {note ? (
+                      <p className="text-xs text-[var(--color-accent)]" role="status">
+                        {note}
+                      </p>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-sm text-[var(--color-muted)]">
-                      Sign in to rate or recommend this film.
+                      Sign in to rate, save, or recommend this film.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Link to="/login" className={secondaryButtonClass}>

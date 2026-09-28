@@ -12,12 +12,17 @@ from app.config import get_settings
 from app.core.constants import NotificationType, RecommendationStatus
 from app.database import Base, get_db
 from app.main import create_app
+import app.models  # noqa: F401 — register all tables on Base.metadata
 from app.modules.movies.models import Movie
 from app.modules.movies.tmdb import TMDBClient
 from sqlalchemy import func, select
 
 from app.modules.recommendations.domain import calculate_recommendation_result
 from app.modules.users.models import User
+from app.modules.diary.models import DiaryEntry
+from app.modules.ratings.models import Rating
+from app.modules.watchlist.models import WatchlistItem
+from app.modules.likes.models import MovieLike
 
 
 TEST_SECRET = "test-jwt-secret-at-least-32-bytes-long"
@@ -442,3 +447,125 @@ def test_failed_tmdb_does_not_leave_bad_rows(client, db_session, monkeypatch):
     response = client.get("/api/v1/movies/search", params={"q": "x"})
     assert response.status_code == 503
     assert db_session.scalar(select(func.count()).select_from(Movie)) == 0
+
+
+# --- Phase G ---
+
+
+def test_patch_profile_updates_cover_and_bio(client, db_session):
+    user = seed_user(db_session, username="editor")
+    response = client.patch(
+        "/api/v1/users/me",
+        headers=auth_header(user.id, username="editor"),
+        json={
+            "display_name": "Editor Name",
+            "bio": "Hello",
+            "avatar_url": "https://cdn.example/a.jpg",
+            "cover_url": "https://cdn.example/c.jpg",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["display_name"] == "Editor Name"
+    assert body["bio"] == "Hello"
+    assert body["avatar_url"] == "https://cdn.example/a.jpg"
+    assert body["cover_url"] == "https://cdn.example/c.jpg"
+    assert body["ratings_count"] == 0
+
+
+def test_rate_auto_creates_diary_and_second_rate_updates_same_day(client, db_session):
+    user = seed_user(db_session, username="rater")
+    movie = seed_movie(db_session)
+    headers = auth_header(user.id, username="rater")
+    first = client.put(
+        "/api/v1/ratings",
+        headers=headers,
+        json={"movie_id": str(movie.id), "score": 4.0},
+    )
+    assert first.status_code == 200
+    assert db_session.scalar(select(func.count()).select_from(Rating)) == 1
+    assert db_session.scalar(select(func.count()).select_from(DiaryEntry)) == 1
+    entry = db_session.scalar(select(DiaryEntry))
+    assert float(entry.score) == 4.0
+
+    second = client.put(
+        "/api/v1/ratings",
+        headers=headers,
+        json={"movie_id": str(movie.id), "score": 5.0},
+    )
+    assert second.status_code == 200
+    db_session.expire_all()
+    assert db_session.scalar(select(func.count()).select_from(DiaryEntry)) == 1
+    entry = db_session.scalar(select(DiaryEntry))
+    assert float(entry.score) == 5.0
+
+    listed = client.get("/api/v1/users/rater/ratings", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert listed.json()[0]["score"] == "5.0"
+    profile = client.get("/api/v1/users/rater", headers=headers).json()
+    assert profile["ratings_count"] == 1
+
+
+def test_diary_with_score_upserts_rating_and_resolves_rec(client, db_session):
+    sender = seed_user(db_session, username="sender")
+    recipient = seed_user(db_session, username="recipient")
+    movie = seed_movie(db_session)
+    client.post("/api/v1/follows/sender", headers=auth_header(recipient.id, username="recipient"))
+    _rate(client, sender, "sender", movie.id)
+    _share(client, sender, "sender", movie.id)
+
+    response = client.post(
+        "/api/v1/diary",
+        headers=auth_header(recipient.id, username="recipient"),
+        json={"movie_id": str(movie.id), "score": 4.5, "review": "great"},
+    )
+    assert response.status_code == 201
+    assert float(response.json()["score"]) == 4.5
+    rating = db_session.scalar(select(Rating).where(Rating.user_id == recipient.id))
+    assert float(rating.score) == 4.5
+    outbox = client.get(
+        "/api/v1/recommendations/outbox",
+        headers=auth_header(sender.id, username="sender"),
+    ).json()
+    assert outbox[0]["status"] == "SUCCESS"
+
+
+def test_watchlist_unique_and_delete(client, db_session):
+    user = seed_user(db_session, username="saver")
+    movie = seed_movie(db_session)
+    headers = auth_header(user.id, username="saver")
+    first = client.post("/api/v1/watchlist", headers=headers, json={"movie_id": str(movie.id)})
+    assert first.status_code == 201
+    dup = client.post("/api/v1/watchlist", headers=headers, json={"movie_id": str(movie.id)})
+    assert dup.status_code == 409
+    assert dup.json()["code"] == "WATCHLIST_EXISTS"
+    detail = client.get(f"/api/v1/movies/{movie.id}", headers=headers).json()
+    assert detail["on_watchlist"] is True
+    listed = client.get("/api/v1/users/saver/watchlist", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    removed = client.delete(f"/api/v1/watchlist/{movie.id}", headers=headers)
+    assert removed.status_code == 204
+    missing = client.delete(f"/api/v1/watchlist/{movie.id}", headers=headers)
+    assert missing.status_code == 404
+    assert db_session.scalar(select(func.count()).select_from(WatchlistItem)) == 0
+
+
+def test_movie_like_unlike_and_profile_likes(client, db_session):
+    user = seed_user(db_session, username="fan")
+    movie = seed_movie(db_session)
+    headers = auth_header(user.id, username="fan")
+    liked = client.post(f"/api/v1/movies/{movie.id}/like", headers=headers)
+    assert liked.status_code == 204
+    dup = client.post(f"/api/v1/movies/{movie.id}/like", headers=headers)
+    assert dup.status_code == 409
+    detail = client.get(f"/api/v1/movies/{movie.id}", headers=headers).json()
+    assert detail["liked_by_me"] is True
+    assert detail["like_count"] == 1
+    listed = client.get("/api/v1/users/fan/likes", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    unliked = client.delete(f"/api/v1/movies/{movie.id}/like", headers=headers)
+    assert unliked.status_code == 204
+    assert db_session.scalar(select(func.count()).select_from(MovieLike)) == 0

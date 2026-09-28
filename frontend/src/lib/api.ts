@@ -9,7 +9,6 @@ function resolveApiBaseUrl(): string {
     return "http://127.0.0.1:8000/api/v1";
   }
   fromEnv = fromEnv.replace(/\/$/, "");
-  // Common misconfig: host only, missing /api/v1
   if (!/\/api\/v1$/i.test(fromEnv)) {
     fromEnv = `${fromEnv}/api/v1`;
   }
@@ -20,7 +19,16 @@ export const apiBaseUrl = resolveApiBaseUrl();
 
 async function getAccessToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  let session = data.session;
+  if (!session) return null;
+
+  // Refresh if expired or within 60s of expiry (getSession can return a stale access_token).
+  const expiresAtMs = (session.expires_at ?? 0) * 1000;
+  if (expiresAtMs && expiresAtMs < Date.now() + 60_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed.session ?? session;
+  }
+  return session.access_token ?? null;
 }
 
 export async function apiFetch<T>(
@@ -62,8 +70,25 @@ export async function apiFetch<T>(
 
 export const api = {
   me: () => apiFetch<import("./types").UserProfile>("/users/me"),
+  updateMe: (body: import("./types").UserProfileUpdate) =>
+    apiFetch<import("./types").UserProfile>("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   profile: (username: string) =>
     apiFetch<import("./types").UserProfile>(`/users/${encodeURIComponent(username)}`),
+  userRatings: (username: string) =>
+    apiFetch<import("./types").UserRatingItem[]>(
+      `/users/${encodeURIComponent(username)}/ratings`,
+    ),
+  userWatchlist: (username: string) =>
+    apiFetch<import("./types").WatchlistItem[]>(
+      `/users/${encodeURIComponent(username)}/watchlist`,
+    ),
+  userDiary: (username: string) =>
+    apiFetch<import("./types").DiaryEntry[]>(`/users/${encodeURIComponent(username)}/diary`),
+  userLikes: (username: string) =>
+    apiFetch<import("./types").LikedMovie[]>(`/users/${encodeURIComponent(username)}/likes`),
   followers: () => apiFetch<import("./types").UserPublic[]>("/users/me/followers"),
   follow: (username: string) =>
     apiFetch<void>(`/follows/${encodeURIComponent(username)}`, { method: "POST" }),
@@ -82,6 +107,31 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ movie_id: movieId, score }),
     }),
+  addWatchlist: (movieId: string) =>
+    apiFetch<import("./types").WatchlistItem>("/watchlist", {
+      method: "POST",
+      body: JSON.stringify({ movie_id: movieId }),
+    }),
+  removeWatchlist: (movieId: string) =>
+    apiFetch<void>(`/watchlist/${movieId}`, { method: "DELETE" }),
+  createDiary: (body: {
+    movie_id: string;
+    watched_at?: string;
+    score?: number;
+    review?: string;
+  }) =>
+    apiFetch<import("./types").DiaryEntry>("/diary", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  likeMovie: (movieId: string) =>
+    apiFetch<void>(`/movies/${movieId}/like`, { method: "POST" }),
+  unlikeMovie: (movieId: string) =>
+    apiFetch<void>(`/movies/${movieId}/like`, { method: "DELETE" }),
+  likeDiary: (entryId: string) =>
+    apiFetch<void>(`/diary/${entryId}/like`, { method: "POST" }),
+  unlikeDiary: (entryId: string) =>
+    apiFetch<void>(`/diary/${entryId}/like`, { method: "DELETE" }),
   createRecommendation: (body: { movie_id: string; message?: string }) =>
     apiFetch<import("./types").Recommendation[]>("/recommendations", {
       method: "POST",

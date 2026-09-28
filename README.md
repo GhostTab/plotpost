@@ -1,8 +1,14 @@
-# MOVIESITE
+# Plotpost
 
 Social movie recommendations with measurable outcomes.
 
 Vertical slice: FastAPI + PostgreSQL + Supabase Auth + TMDB (backend only) + React frontend.
+
+## Docs
+
+- Product update (UI, profile, cast filmography, deploy): [`docs/2026-09-28-plotpost-product-update.md`](docs/2026-09-28-plotpost-product-update.md)
+- Design spec: [`docs/superpowers/specs/2026-09-27-recommendation-vertical-slice-design.md`](docs/superpowers/specs/2026-09-27-recommendation-vertical-slice-design.md)
+- Implementation plan: [`docs/superpowers/plans/2026-09-27-recommendation-vertical-slice-plan.md`](docs/superpowers/plans/2026-09-27-recommendation-vertical-slice-plan.md)
 
 ## Prerequisites
 
@@ -40,7 +46,8 @@ postgresql+psycopg://postgres:[DB_PASSWORD]@db.uuxlkxyezhpzxdgbtcqi.supabase.co:
 
 Put that value in the root `.env` as `DATABASE_URL`.
 
-`SUPABASE_JWT_SECRET` must match Project Settings → API → JWT Secret (FastAPI verifies tokens). Frontend uses the anon key only.
+`SUPABASE_JWT_SECRET` must match Project Settings → API → JWT Secret (legacy HS256).  
+Also set **`SUPABASE_URL`** (same as `VITE_SUPABASE_URL`) so the API can verify modern **ES256** user tokens via JWKS (`/auth/v1/.well-known/jwks.json`). Frontend uses the anon key only.
 
 ## Backend setup
 
@@ -79,7 +86,12 @@ Alembic will create the app tables (`users`, `follows`, `movies`, …) in your S
 
 ### Auth provisioning
 
-Every authenticated request verifies the Supabase JWT (`HS256` + `SUPABASE_JWT_SECRET`) and auto-provisions a `users` row if missing.
+Every authenticated request verifies the Supabase JWT and auto-provisions a row in **`public.users`** (not `auth.users`) if missing.
+
+- **Authentication** tab in Supabase = Auth identities only.  
+- **Table Editor → `users`** = app profiles (created when the API accepts a valid session).
+
+Register/sign-in now call `GET /api/v1/users/me` immediately so the profile row is created right away.
 
 Username selection:
 
@@ -87,7 +99,7 @@ Username selection:
 2. email local-part, else
 3. `user_{uid_prefix}`
 
-`GET /api/v1/users/me` returns the current profile (used by the nav).
+If profiles never appear in `users`: confirm email is off (or confirmed), Railway has `SUPABASE_URL` + working JWT verify, and `DATABASE_URL` points at the same Supabase Postgres you’re inspecting.
 
 ### Recommendation threshold
 

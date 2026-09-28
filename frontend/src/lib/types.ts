@@ -14,12 +14,21 @@ export type UserPublic = {
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  cover_url?: string | null;
 };
 
 export type UserProfile = UserPublic & {
   recommendation_stats: RecommendationStats;
+  ratings_count?: number;
   is_following: boolean;
   is_self: boolean;
+};
+
+export type UserProfileUpdate = {
+  display_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  cover_url?: string | null;
 };
 
 export type MovieSummary = {
@@ -41,6 +50,11 @@ export type MovieDetail = MovieSummary & {
   genres?: string[];
   director?: string | null;
   cast?: CastMember[];
+  on_watchlist?: boolean;
+  watched?: boolean;
+  watched_at?: string | null;
+  like_count?: number;
+  liked_by_me?: boolean;
 };
 
 export type CastMember = {
@@ -68,6 +82,35 @@ export type PersonDetail = {
   profile_path: string | null;
   known_for_department: string | null;
   filmography: PersonCredit[];
+};
+
+export type UserRatingItem = {
+  movie: MovieSummary;
+  score: string | number;
+  updated_at: string;
+};
+
+export type WatchlistItem = {
+  movie: MovieSummary;
+  created_at: string;
+};
+
+export type DiaryEntry = {
+  id: string;
+  movie_id: string;
+  watched_at: string;
+  score: string | number | null;
+  review: string | null;
+  created_at: string;
+  updated_at: string;
+  movie: MovieSummary | null;
+  like_count: number;
+  liked_by_me: boolean;
+};
+
+export type LikedMovie = {
+  movie: MovieSummary;
+  created_at: string;
 };
 
 export type Recommendation = {

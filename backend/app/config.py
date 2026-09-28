@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/moviesite"
+    # Project URL, e.g. https://xxxx.supabase.co — required to verify ES256 user tokens via JWKS.
+    supabase_url: str = ""
     supabase_jwt_secret: str = "dev-secret-change-me"
     supabase_jwt_audience: str = "authenticated"
     tmdb_api_key: str = ""
@@ -25,6 +27,20 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def supabase_jwks_url(self) -> str | None:
+        base = (self.supabase_url or "").strip().rstrip("/")
+        if not base:
+            return None
+        return f"{base}/auth/v1/.well-known/jwks.json"
+
+    @property
+    def supabase_jwt_issuer(self) -> str | None:
+        base = (self.supabase_url or "").strip().rstrip("/")
+        if not base:
+            return None
+        return f"{base}/auth/v1"
 
 
 @lru_cache

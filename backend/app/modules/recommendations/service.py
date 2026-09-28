@@ -42,6 +42,23 @@ class RatingRepository:
         value = self.db.scalar(stmt)
         return float(value) if value is not None else None
 
+    def count_for_user(self, user_id: UUID) -> int:
+        stmt = select(func.count()).select_from(Rating).where(Rating.user_id == user_id)
+        return int(self.db.scalar(stmt) or 0)
+
+    def list_for_user(
+        self, user_id: UUID, *, limit: int, offset: int
+    ) -> list[tuple[Rating, Movie]]:
+        stmt = (
+            select(Rating, Movie)
+            .join(Movie, Movie.id == Rating.movie_id)
+            .where(Rating.user_id == user_id)
+            .order_by(Rating.updated_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(self.db.execute(stmt).all())
+
 
 class NotificationRepository:
     def __init__(self, db: Session) -> None:
@@ -340,9 +357,24 @@ class RatingService:
         self.recs = RecommendationService(db)
 
     def upsert(self, user: User, *, movie_id: UUID, score: Decimal) -> Rating:
+        from datetime import date
+
+        from app.modules.diary.service import DiaryRepository
+
         movie = self.movies.require_by_id(movie_id)
         rating = self.ratings.upsert(user.id, movie.id, score)
         self.recs.resolve_for_rating(user, movie, score)
+        # Auto-log watched/diary for today (Phase G default).
+        DiaryRepository(self.db).upsert_for_rating_day(user.id, movie.id, score, date.today())
         self.db.commit()
         self.db.refresh(rating)
         return rating
+
+    def list_for_username(
+        self, username: str, *, limit: int, offset: int
+    ) -> list[tuple[Rating, Movie]]:
+        user = self.users_repo().require_by_username(username)
+        return self.ratings.list_for_user(user.id, limit=limit, offset=offset)
+
+    def users_repo(self) -> UserRepository:
+        return UserRepository(self.db)

@@ -50,6 +50,31 @@ class UserRepository:
             raise ConflictError("Could not provision user", code="USER_PROVISION_FAILED") from exc
         return user
 
+    def update_profile(
+        self,
+        user: User,
+        *,
+        display_name: str | None = None,
+        bio: str | None = None,
+        avatar_url: str | None = None,
+        cover_url: str | None = None,
+        set_display_name: bool = False,
+        set_bio: bool = False,
+        set_avatar_url: bool = False,
+        set_cover_url: bool = False,
+    ) -> User:
+        if set_display_name:
+            user.display_name = display_name
+        if set_bio:
+            user.bio = bio
+        if set_avatar_url:
+            user.avatar_url = avatar_url
+        if set_cover_url:
+            user.cover_url = cover_url
+        self.db.add(user)
+        self.db.flush()
+        return user
+
     def _unique_username(self, base: str) -> str:
         candidate = base
         suffix = 0

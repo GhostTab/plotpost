@@ -11,6 +11,11 @@ from app.modules.recommendations.service import RatingRepository, Recommendation
 from app.modules.schemas_common import CastMember, MovieDetail, PersonCredit, PersonDetail
 
 
+from app.modules.diary.service import DiaryRepository
+from app.modules.likes.service import LikeRepository
+from app.modules.watchlist.service import WatchlistRepository
+
+
 class MovieService:
     def __init__(self, db: Session, tmdb: TMDBClient | None = None) -> None:
         self.db = db
@@ -18,6 +23,9 @@ class MovieService:
         self.tmdb = tmdb or TMDBClient()
         self.ratings = RatingRepository(db)
         self.recs = RecommendationRepository(db)
+        self.watchlist = WatchlistRepository(db)
+        self.diary = DiaryRepository(db)
+        self.likes = LikeRepository(db)
 
     def search(self, query: str) -> list[Movie]:
         return self._upsert_all(self.tmdb.search(query))
@@ -161,6 +169,25 @@ class MovieService:
             genres=genres,
             director=director,
             cast=cast,
+            on_watchlist=(
+                self.watchlist.is_on_watchlist(viewer_id, movie.id)
+                if viewer_id is not None
+                else False
+            ),
+            watched=(
+                self.diary.has_any_for_movie(viewer_id, movie.id)
+                if viewer_id is not None
+                else False
+            ),
+            watched_at=(
+                self.diary.latest_watched_at(viewer_id, movie.id)
+                if viewer_id is not None
+                else None
+            ),
+            like_count=self.likes.movie_like_count(movie.id),
+            liked_by_me=(
+                self.likes.movie_liked(viewer_id, movie.id) if viewer_id is not None else False
+            ),
         )
 
 

@@ -63,19 +63,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured()) throw new Error(CONFIG_ERROR);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-  }, []);
+    // Provision / sync app `users` row (created on first authenticated API call).
+    if (data.session?.access_token) {
+      try {
+        await queryClient.fetchQuery({ queryKey: ["me"], queryFn: () => api.me() });
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : "API rejected the session";
+        throw new Error(
+          `Signed in to Auth, but profile sync failed (${detail}). Check SUPABASE_URL on Railway and that the API is reachable.`,
+        );
+      }
+    }
+  }, [queryClient]);
 
   const signUp = useCallback(async (email: string, password: string, username: string) => {
     if (!isSupabaseConfigured()) throw new Error(CONFIG_ERROR);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
     if (error) throw error;
-  }, []);
+    if (!data.session) {
+      throw new Error(
+        "Account created in Authentication, but email confirmation is required before we can save your profile. In Supabase: Auth → Providers → Email → turn off “Confirm email”, or confirm the email then sign in.",
+      );
+    }
+    // Creates the row in public.users via GET /users/me → ensure_from_auth.
+    try {
+      await queryClient.fetchQuery({ queryKey: ["me"], queryFn: () => api.me() });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "API rejected the session";
+      throw new Error(
+        `Auth account exists, but saving to the users table failed (${detail}). Set SUPABASE_URL on Railway, redeploy, then sign in once.`,
+      );
+    }
+  }, [queryClient]);
 
   const signOut = useCallback(async () => {
     if (!isSupabaseConfigured()) throw new Error(CONFIG_ERROR);

@@ -53,6 +53,11 @@ class MovieDetail(MovieSummary):
     genres: list[str] = []
     director: str | None = None
     cast: list[CastMember] = []
+    on_watchlist: bool = False
+    watched: bool = False
+    watched_at: date | None = None
+    like_count: int = 0
+    liked_by_me: bool = False
 
 
 class RatingUpsert(BaseModel):
@@ -76,6 +81,75 @@ class RatingOut(BaseModel):
     score: Decimal
     created_at: datetime
     updated_at: datetime
+
+
+class UserRatingItem(BaseModel):
+    movie: MovieSummary
+    score: Decimal
+    updated_at: datetime
+
+
+class WatchlistCreate(BaseModel):
+    movie_id: UUID
+
+
+class WatchlistItemOut(BaseModel):
+    movie: MovieSummary
+    created_at: datetime
+
+
+class DiaryCreate(BaseModel):
+    movie_id: UUID
+    watched_at: date | None = None
+    score: Decimal | None = Field(default=None, ge=Decimal("0.5"), le=Decimal("5.0"))
+    review: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("score")
+    @classmethod
+    def half_star_steps_optional(cls, value: Decimal | None) -> Decimal | None:
+        if value is None:
+            return None
+        scaled = value * 2
+        if scaled != scaled.to_integral_value():
+            raise ValueError("score must be in half-star steps (0.5 increments)")
+        return value.quantize(Decimal("0.1"))
+
+
+class DiaryUpdate(BaseModel):
+    watched_at: date | None = None
+    score: Decimal | None = Field(default=None, ge=Decimal("0.5"), le=Decimal("5.0"))
+    review: str | None = Field(default=None, max_length=5000)
+    clear_score: bool = False
+
+    @field_validator("score")
+    @classmethod
+    def half_star_steps_optional(cls, value: Decimal | None) -> Decimal | None:
+        if value is None:
+            return None
+        scaled = value * 2
+        if scaled != scaled.to_integral_value():
+            raise ValueError("score must be in half-star steps (0.5 increments)")
+        return value.quantize(Decimal("0.1"))
+
+
+class DiaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    movie_id: UUID
+    watched_at: date
+    score: Decimal | None
+    review: str | None
+    created_at: datetime
+    updated_at: datetime
+    movie: MovieSummary | None = None
+    like_count: int = 0
+    liked_by_me: bool = False
+
+
+class LikedMovieOut(BaseModel):
+    movie: MovieSummary
+    created_at: datetime
 
 
 class RecommendationCreate(BaseModel):
